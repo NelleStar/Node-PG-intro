@@ -22,7 +22,7 @@ router.get("/:id", async (req, res, next) => {
     const results = await db.query(`SELECT * FROM invoices WHERE id = $1`, [id]);
 
     if (results.rows.length === 0) {
-      throw new ExpressError(`No user found with id of ${id}`, 404);
+      throw new ExpressError(`No invoice found with id of ${id}`, 404);
     }
 
     return res.send({ invoice: results.rows[0] });
@@ -49,22 +49,29 @@ router.post("/", async (req, res, next) => {
 router.patch("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { comp_code, amt, paid, add_date, paid_date } = req.body;
+    const { amt, paid } = req.body;
+    let paid_date = null; 
+
+    if (paid) {
+      paid_date = new Date().toISOString();
+    }
 
     const results = await db.query(
-      `UPDATE invoices SET comp_code=$1, amt=$2, paid=$3, add_date=$4, paid_date=$5 WHERE id=$6 RETURNING *`,
-      [comp_code, amt, paid, add_date, paid_date, id]
+      `UPDATE invoices SET amt=$1, paid=$2, paid_date=$3 WHERE id=$4 RETURNING *`,
+      [amt, paid, paid_date, id]
     );
 
     if (results.rows.length === 0) {
-      throw new ExpressError(`No company found with code of ${code}`, 404);
+      throw new ExpressError(`No invoice found with id ${id}`, 404);
     }
 
-    return res.send({ invoice: results.rows[0] });
+    const invoice = results.rows[0];
+    return res.json({ invoice });
   } catch (err) {
     return next(err);
   }
 });
+
 
 // DELETE invoice
 router.delete("/:id", async (req, res, next) => {
